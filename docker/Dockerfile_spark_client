@@ -1,0 +1,6 @@
+FROM python:3.11.13-bookworm AS base
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir \
+    "pyspark[connect,sql]==3.5.6"
