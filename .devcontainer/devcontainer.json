@@ -1,6 +1,10 @@
 {
   "name": "Iceberg Sandbox",
-  "dockerComposeFile": "../compose.dev.yml",
+  "dockerComposeFile": "../compose.yml",
+  "containerEnv": {
+    // docker composeが参照するプロジェクト名を設定
+    "COMPOSE_PROJECT_NAME": "iceberg-sandbox"
+  },
   "service": "spark-connect-client",
   "workspaceFolder": "/app",
   "features": {
