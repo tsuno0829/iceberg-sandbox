@@ -19,6 +19,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       retries: 3
+    networks:
+      - iceberg-sandbox-network
 
   minio:
     container_name: minio
@@ -32,6 +34,8 @@ services:
     volumes:
       - data:/data
     command: server /data --console-address ":9001"
+    networks:
+      - iceberg-sandbox-network
 
   create-bucket:
     image: minio/mc
@@ -40,6 +44,8 @@ services:
     volumes:
       - data:/data
     entrypoint: mc mb /data/bucket
+    networks:
+      - iceberg-sandbox-network
 
   irc:
     hostname: irc
@@ -64,8 +70,9 @@ services:
       CATALOG_S3_PATH__STYLE__ACCESS: true
       CATALOG_S3_ACCESS__KEY__ID: minioadmin
       CATALOG_S3_SECRET__ACCESS__KEY: minioadmin
-
     command: java -cp /usr/lib/iceberg-rest/*:iceberg-rest-adapter.jar org.apache.iceberg.rest.RESTCatalogServer
+    networks:
+      - iceberg-sandbox-network
 
   # trino:
   #   container_name: trino
@@ -78,7 +85,6 @@ services:
   #   ports:
   #     - "8080:8080"
 
-  # --- Spark Connect Server ---
   spark-connect-server:
     image: apache/spark:3.5.6
     container_name: spark-connect-server
@@ -131,3 +137,25 @@ services:
       --conf spark.sql.catalog.iceberg.s3.region=us-east-1
       --conf spark.hadoop.fs.s3a.endpoint.region=us-east-1
       && tail -f /dev/null"
+    networks:
+      - iceberg-sandbox-network
+
+  spark-connect-client:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile_spark_client
+    container_name: spark-connect-client
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/app/
+    # コンテナを起動し続け、インタラクティブな操作を可能にする
+    stdin_open: true
+    tty: true
+    # compose.ymlのdocker networkを指定
+    networks:
+      - iceberg-sandbox-network
+
+networks:
+  iceberg-sandbox-network:
+    driver: bridge
