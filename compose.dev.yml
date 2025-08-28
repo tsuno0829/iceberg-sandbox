@@ -1,0 +1,14 @@
+services:
+  # --- Spark Connect Client ---
+  spark-connect-client:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile_spark_client
+    container_name: spark-connect-client
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/app/
+    # コンテナを起動し続け、インタラクティブな操作を可能にする
+    stdin_open: true
+    tty: true

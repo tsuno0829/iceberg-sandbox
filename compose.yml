@@ -131,19 +131,3 @@ services:
       --conf spark.sql.catalog.iceberg.s3.region=us-east-1
       --conf spark.hadoop.fs.s3a.endpoint.region=us-east-1
       && tail -f /dev/null"
-
-  # --- Spark Connect Client ---
-  spark-connect-client:
-    build:
-      context: .
-      dockerfile: ./docker/Dockerfile_spark_client
-    container_name: spark-connect-client
-    ports:
-      - "8888:8888"
-    volumes:
-      - .:/app/
-    depends_on:
-      - spark-connect-server
-    # コンテナを起動し続け、インタラクティブな操作を可能にする
-    stdin_open: true
-    tty: true

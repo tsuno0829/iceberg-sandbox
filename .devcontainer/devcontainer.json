@@ -1,0 +1,28 @@
+{
+  "name": "Iceberg Sandbox",
+  "dockerComposeFile": "../compose.dev.yml",
+  "service": "spark-connect-client",
+  "workspaceFolder": "/app",
+  "features": {
+ 		"docker-from-docker": {
+ 			"version": "latest",
+ 			"dockerDashComposeVersion": "v2"
+ 		}
+ 	},
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dorzey.sqlfluff",
+        "GitHub.Copilot",
+        "mhutchie.git-graph",
+        "ms-python.python"
+      ],
+      "settings": {
+        "chat.tools.autoApprove": true, // Auto Approveを有効にする
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "workbench.colorTheme": "Solarized Dark" // Dev Container用のテーマを設定しておくと見やすい
+      }
+    }
+  },
+  "remoteUser": "vscode"
+}
