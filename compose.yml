@@ -49,9 +49,9 @@ services:
 
   irc:
     hostname: irc
-    image: apache/iceberg-rest-fixture:1.9.2
-    volumes:
-      - ./postgresql-42.7.5.jar:/usr/lib/iceberg-rest/postgresql-42.7.5.jar
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile_iceberg_rest
     depends_on:
       postgresql:
         condition: service_healthy
