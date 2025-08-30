@@ -93,33 +93,14 @@ services:
     volumes:
       - ivy-cache:/home/spark/.ivy2
     ports:
-      - "8080:8080" # Spark Master UI (スタンドアロンモードで実行する場合)
-      - "4040:4040" # Spark Application UI
-      - "15002:15002" # Spark Connect Server Port
+      - "15002:15002"
     environment:
       - AWS_ACCESS_KEY_ID=minioadmin
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - AWS_REGION=us-east-1
-    # environment:
-    #   - SPARK_CONF_spark_sql_extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
-    #   - SPARK_CONF_spark_sql_defaultCatalog=iceberg
-    #   - SPARK_CONF_spark_sql_catalog_iceberg=org.apache.iceberg.spark.SparkCatalog
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_type=rest
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_uri=http://irc:8181
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_io-impl=org.apache.iceberg.aws.s3.S3FileIO
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_warehouse=s3://bucket/warehouse/
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_s3_endpoint=http://minio:9000
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_s3_path-style-access=true
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_s3_access-key-id=minioadmin
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_s3_secret-access-key=minioadmin
     depends_on:
       - irc
       - minio
-    # https://mvnrepository.com/artifact/org.apache.iceberg/iceberg-spark-runtime-3.5
-    # https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws
-    # https://mvnrepository.com/artifact/org.apache.spark/spark-connect
-    # command: >
-    #   /bin/sh -c "/opt/spark/sbin/start-connect-server.sh --packages org.apache.spark:spark-connect_2.12:3.5.6,org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.5.2,org.apache.hadoop:hadoop-aws:3.3.4 && tail -f /dev/null"
     command: >
       /bin/sh -c "/opt/spark/sbin/start-connect-server.sh
       --packages org.apache.spark:spark-connect_2.12:3.5.6,org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.5.2,org.apache.hadoop:hadoop-aws:3.3.4,software.amazon.awssdk:bundle:2.20.43
@@ -152,7 +133,6 @@ services:
     # コンテナを起動し続け、インタラクティブな操作を可能にする
     stdin_open: true
     tty: true
-    # compose.ymlのdocker networkを指定
     networks:
       - iceberg-sandbox-network
 
