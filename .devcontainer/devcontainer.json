@@ -19,10 +19,11 @@
         "dorzey.sqlfluff",
         "GitHub.Copilot",
         "mhutchie.git-graph",
-        "ms-python.python"
+        "ms-python.python",
+        "ms-vscode.makefile-tools"
       ],
       "settings": {
-        "chat.tools.autoApprove": true, // Auto Approveを有効にする
+        "chat.tools.autoApprove": true,
         "terminal.integrated.defaultProfile.linux": "bash",
         "workbench.colorTheme": "Solarized Dark" // Dev Container用のテーマを設定しておくと見やすい
       }
