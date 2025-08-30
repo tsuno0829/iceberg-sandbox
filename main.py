@@ -1,5 +1,5 @@
 """
-Iceberg x Sparkの動作確認用のコード
+Simple Iceberg test code using Spark
 """
 from pyspark.sql import SparkSession
 
@@ -24,8 +24,7 @@ df.writeTo(table_name).createOrReplace()
 print(f"✅ Wrote data to {table_name}")
 
 # Icebergテーブルから読み込み
-read_df = spark.read.table(table_name)
-read_df.show()
+spark.read.table(table_name).show()
 
 # Sparkセッションを停止
 spark.stop()
