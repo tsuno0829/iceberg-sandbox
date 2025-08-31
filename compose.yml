@@ -109,17 +109,17 @@ services:
       /bin/sh -c "/opt/spark/sbin/start-connect-server.sh
       --jars /opt/spark/jars/iceberg/spark-connect_2.12-3.5.6.jar,/opt/spark/jars/iceberg/iceberg-spark-runtime-3.5_2.12-1.5.2.jar,/opt/spark/jars/iceberg/hadoop-aws-3.3.4.jar,/opt/spark/jars/iceberg/bundle-2.20.43.jar
       --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
-      --conf spark.sql.defaultCatalog=iceberg
-      --conf spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkCatalog
-      --conf spark.sql.catalog.iceberg.type=rest
-      --conf spark.sql.catalog.iceberg.uri=http://irc:8181
-      --conf spark.sql.catalog.iceberg.io-impl=org.apache.iceberg.aws.s3.S3FileIO
-      --conf spark.sql.catalog.iceberg.warehouse=s3://bucket/warehouse/
-      --conf spark.sql.catalog.iceberg.s3.endpoint=http://minio:9000
-      --conf spark.sql.catalog.iceberg.s3.path-style-access=true
-      --conf spark.sql.catalog.iceberg.s3.access-key-id=minioadmin
-      --conf spark.sql.catalog.iceberg.s3.secret-access-key=minioadmin
-      --conf spark.sql.catalog.iceberg.s3.region=us-east-1
+      --conf spark.sql.defaultCatalog=my_catalog
+      --conf spark.sql.catalog.my_catalog=org.apache.iceberg.spark.SparkCatalog
+      --conf spark.sql.catalog.my_catalog.type=rest
+      --conf spark.sql.catalog.my_catalog.uri=http://irc:8181
+      --conf spark.sql.catalog.my_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO
+      --conf spark.sql.catalog.my_catalog.warehouse=s3://bucket/warehouse/
+      --conf spark.sql.catalog.my_catalog.s3.endpoint=http://minio:9000
+      --conf spark.sql.catalog.my_catalog.s3.path-style-access=true
+      --conf spark.sql.catalog.my_catalog.s3.access-key-id=minioadmin
+      --conf spark.sql.catalog.my_catalog.s3.secret-access-key=minioadmin
+      --conf spark.sql.catalog.my_catalog.s3.region=us-east-1
       --conf spark.hadoop.fs.s3a.endpoint.region=us-east-1
       --conf spark.eventLog.dir=file:///home/spark/spark-events
       --conf spark.eventLog.enabled=true
