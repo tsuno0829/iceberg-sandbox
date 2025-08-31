@@ -92,6 +92,7 @@ services:
       dockerfile: ./docker/Dockerfile_spark_server
     container_name: spark-connect-server
     hostname: spark-connect-server
+    user: "185:185"
     volumes:
       - ivy-cache:/home/spark/.ivy2
       - spark-events:/tmp/spark-events
@@ -105,13 +106,11 @@ services:
       - irc
       - minio
     command: >
-      /bin/sh -c "mkdir -p /tmp/spark-events
-      && /opt/spark/sbin/start-connect-server.sh
+      /bin/sh -c "/opt/spark/sbin/start-connect-server.sh
       --jars /opt/spark/jars/iceberg/spark-connect_2.12-3.5.6.jar,/opt/spark/jars/iceberg/iceberg-spark-runtime-3.5_2.12-1.5.2.jar,/opt/spark/jars/iceberg/hadoop-aws-3.3.4.jar,/opt/spark/jars/iceberg/bundle-2.20.43.jar
       --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
       --conf spark.sql.defaultCatalog=iceberg
       --conf spark.eventLog.enabled=true
-      --conf spark.eventLog.dir=file:///tmp/spark-events
       --conf spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkCatalog
       --conf spark.sql.catalog.iceberg.type=rest
       --conf spark.sql.catalog.iceberg.uri=http://irc:8181
@@ -131,7 +130,7 @@ services:
     image: apache/spark:3.5.6
     container_name: spark-history-server
     hostname: spark-history-server
-    user: "0:0"
+    user: "185:185"
     ports:
       - "18080:18080"
     environment:
@@ -145,8 +144,7 @@ services:
     depends_on:
       - minio
     command: >
-      /bin/sh -c "mkdir -p /tmp/spark-events
-      && /opt/spark/sbin/start-history-server.sh
+      /bin/sh -c "/opt/spark/sbin/start-history-server.sh
       && tail -f /dev/null"
     networks:
       - iceberg-sandbox-network
