@@ -1,35 +1,29 @@
-"""
-Simple health check for Spark Connect server
-"""
-import sys
-import time
-from pyspark.sql import SparkSession
+import socket
 
-def check_spark_server(max_retries=3, retry_interval=2):
-    """
-    Attempts to connect to the Spark Connect server and returns 
-    success or failure with appropriate exit code
-    """
-    print("🔍 Checking Spark Connect server status...")
+# 確認したいサーバーとポート
+SPARK_HOST = "spark-connect-server"
+SPARK_PORT = 15002
+TIMEOUT_SECONDS = 5  # タイムアウトを5秒に設定
+
+try:
+    # 指定したホストとポートに、タイムアウト付きで接続を試みる
+    socket.create_connection((SPARK_HOST, SPARK_PORT), timeout=TIMEOUT_SECONDS)
     
-    for attempt in range(1, max_retries + 1):
-        try:
-            # Attempt to create a SparkSession
-            spark = SparkSession.builder.remote("sc://spark-connect-server:15002").getOrCreate()
-            
-            # If successful, print version and exit
-            print(f"✅ Spark Connect server is running! Version: {spark.version}")
-            spark.stop()
-            return 0
-            
-        except Exception as e:
-            if attempt < max_retries:
-                print(f"⚠️ Attempt {attempt} failed. Retrying in {retry_interval} seconds...")
-                time.sleep(retry_interval)
-            else:
-                print(f"❌ Failed to connect to Spark Connect server after {max_retries} attempts.")
-                print(f"Error: {str(e)}")
-                return 1
+    # ここまで到達すれば接続成功
+    print(f"✅ Success: A connection could be established to {SPARK_HOST}:{SPARK_PORT}")
 
-if __name__ == "__main__":
-    sys.exit(check_spark_server())
+except socket.timeout:
+    # タイムアウトした場合
+    print(f"❌ Failure: Connection to {SPARK_HOST}:{SPARK_PORT} timed out after {TIMEOUT_SECONDS} seconds.")
+
+except ConnectionRefusedError:
+    # サーバーから接続を拒否された場合
+    print(f"❌ Failure: Connection to {SPARK_HOST}:{SPARK_PORT} was refused by the server.")
+    
+except socket.gaierror:
+    # ホスト名が見つからない場合
+    print(f"❌ Failure: The hostname '{SPARK_HOST}' could not be resolved.")
+
+except Exception as e:
+    # その他のエラー
+    print(f"❌ An unexpected error occurred: {e}")
