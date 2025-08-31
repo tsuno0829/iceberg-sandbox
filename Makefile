@@ -1,7 +1,7 @@
 .PHONY: build
 .PHONY: up
 .PHONY: down
-.PHONY: check-spark-server
+.PHONY: smoketest
 
 build:
     docker compose build
@@ -12,5 +12,6 @@ up:
 down:
     docker compose down -v --remove-orphans
 
-check-spark-server:
-    docker compose exec spark-connect-client python /app/check_spark_server.py
+smoketest:
+    docker compose exec spark-connect-client python /app/iceberg_smoketest.py
+
