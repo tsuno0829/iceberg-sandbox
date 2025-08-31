@@ -4,14 +4,13 @@
 .PHONY: smoketest
 
 build:
-    docker compose build
+	docker compose build
 
 up:
-    docker compose up
+	docker compose up
 
 down:
-    docker compose down -v --remove-orphans
+	docker compose down -v --remove-orphans
 
-smoketest:
-    docker compose exec spark-connect-client python /app/iceberg_smoketest.py
-
+test:
+	docker compose exec spark-connect-client python /app/tests/smoke/spark_iceberg.py
