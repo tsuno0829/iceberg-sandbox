@@ -95,8 +95,8 @@ def main() -> int:
             if spark is not None:
                 try:
                     spark.stop()
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"Warning: Failed to stop Spark session cleanly: {e}")
 
     return exit_code
 
