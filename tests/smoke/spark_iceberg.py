@@ -2,7 +2,7 @@
 Unified Spark + Iceberg smoke test with a simple pre-check to avoid Spark Connect hang.
 
 Behavior:
-- Single-shot socket connectivity check to Spark Connect Server (no retries).
+- Socket connectivity check to Spark Connect Server with retries for up to 3 minutes.
 - Connect via Spark Connect.
 - Use Iceberg catalog "my_catalog" and test table "my_db.my_table".
 - Create namespace if needed, write sample data, read it back, then clean up table and namespace.
@@ -10,12 +10,15 @@ Behavior:
 
 import socket
 import sys
+import time
 from pyspark.sql import SparkSession
 
 
 SPARK_HOST = "spark-connect-server"
 SPARK_PORT = 15002
 SOCKET_TIMEOUT_SECONDS = 5
+MAX_WAIT_TIME_SECONDS = 180  # 3 minutes maximum wait time
+RETRY_INTERVAL_SECONDS = 5   # Time between retry attempts
 
 ICEBERG_CATALOG = "my_catalog"
 NAMESPACE = "my_db"
@@ -23,22 +26,40 @@ TABLE_NAME = f"{NAMESPACE}.my_table"  # resolved under current catalog
 
 
 def check_connectivity(host: str, port: int, timeout_sec: int = SOCKET_TIMEOUT_SECONDS) -> None:
-    """Single attempt to open a TCP connection; raises on failure."""
-    socket.create_connection((host, port), timeout=timeout_sec)
+    """Attempt to open a TCP connection with retries for up to 3 minutes."""
+    start_time = time.time()
+    last_exception = None
+    
+    while time.time() - start_time < MAX_WAIT_TIME_SECONDS:
+        try:
+            socket.create_connection((host, port), timeout=timeout_sec)
+            return  # Connection successful
+        except Exception as e:
+            last_exception = e
+            elapsed = int(time.time() - start_time)
+            remaining = MAX_WAIT_TIME_SECONDS - elapsed
+            print(f"Connection attempt failed ({elapsed}s elapsed, {remaining}s remaining): {e}")
+            if remaining > 0:
+                time.sleep(min(RETRY_INTERVAL_SECONDS, remaining))
+    
+    # If we get here, we've timed out
+    raise TimeoutError(f"Could not connect to {host}:{port} after {MAX_WAIT_TIME_SECONDS} seconds. Last error: {last_exception}")
 
 
 def main() -> int:
-    # Simple connectivity check to avoid Spark Connect hang
+    # Connectivity check with retries for up to 3 minutes
     try:
+        print(f"Checking connectivity to {SPARK_HOST}:{SPARK_PORT} (will retry for up to {MAX_WAIT_TIME_SECONDS} seconds)...")
         check_connectivity(SPARK_HOST, SPARK_PORT)
         print(f"✅ Success: A connection could be established to {SPARK_HOST}:{SPARK_PORT}")
-    except ConnectionRefusedError:
-        print(f"❌ Connection Refused Error: Connection to {SPARK_HOST}:{SPARK_PORT} was refused by the server.")
+    except TimeoutError as e:
+        print(f"❌ Timeout Error: {e}")
         return 1
     except Exception as e:
         print(f"❌ Exception Error: An unexpected error occurred while checking connectivity: {e}")
         return 1
-
+    
+    # ... rest of the code remains unchanged
     spark = None
     exit_code = 0
     try:
