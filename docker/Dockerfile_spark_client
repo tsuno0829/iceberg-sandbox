@@ -1,6 +1,18 @@
 FROM python:3.11.13-bookworm AS base
 
+# vscodeユーザー作成に必要なsudoをインストール
+RUN apt-get update && apt-get install -y sudo
+
+# 非rootユーザー（vscode）を作成し、sudoグループに追加
+RUN useradd -m vscode && \
+    usermod -aG sudo vscode && \
+    echo "vscode ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/vscode
+
 WORKDIR /app
 
 RUN pip install --no-cache-dir \
-    "pyspark[connect,sql]==3.5.6"
+    "pyspark[connect,sql]==3.5.6" \
+    jupyter \
+    ipykernel
+# ユーザーをvscodeに切り替え
+USER vscode

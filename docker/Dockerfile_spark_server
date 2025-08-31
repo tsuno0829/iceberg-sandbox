@@ -1,0 +1,23 @@
+FROM apache/spark:3.5.6
+
+# Switch to root to install packages
+USER root
+
+# Maven Central URLの設定
+ARG MAVEN_CENTRAL=https://repo1.maven.org/maven2
+
+# 必要なJARファイルをダウンロード
+RUN mkdir -p /opt/spark/jars/iceberg && \
+    curl -o /opt/spark/jars/iceberg/spark-connect_2.12-3.5.6.jar \
+        ${MAVEN_CENTRAL}/org/apache/spark/spark-connect_2.12/3.5.6/spark-connect_2.12-3.5.6.jar && \
+    curl -o /opt/spark/jars/iceberg/iceberg-spark-runtime-3.5_2.12-1.5.2.jar \
+        ${MAVEN_CENTRAL}/org/apache/iceberg/iceberg-spark-runtime-3.5_2.12/1.5.2/iceberg-spark-runtime-3.5_2.12-1.5.2.jar && \
+    curl -o /opt/spark/jars/iceberg/hadoop-aws-3.3.4.jar \
+        ${MAVEN_CENTRAL}/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar && \
+    curl -o /opt/spark/jars/iceberg/bundle-2.20.43.jar \
+        ${MAVEN_CENTRAL}/software/amazon/awssdk/bundle/2.20.43/bundle-2.20.43.jar && \
+    chown -R spark:spark /opt/spark/jars/iceberg
+
+# Switch back to spark user (UID 185, as defined in Apache Spark's official Dockerfile)
+# Reference: https://github.com/apache/spark-docker/blob/master/Dockerfile.template
+USER spark

@@ -1,10 +1,6 @@
 #
 # 参考：https://zenn.dev/iceberg/articles/aa5ee2f2b7fc06
 #
-volumes:
-  data: {}
-  ivy-cache: {}
-
 services:
   postgresql:
     container_name: postgresql
@@ -19,6 +15,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       retries: 3
+    networks:
+      - iceberg-sandbox-network
 
   minio:
     container_name: minio
@@ -32,6 +30,8 @@ services:
     volumes:
       - data:/data
     command: server /data --console-address ":9001"
+    networks:
+      - iceberg-sandbox-network
 
   create-bucket:
     image: minio/mc
@@ -39,13 +39,16 @@ services:
       - minio
     volumes:
       - data:/data
-    entrypoint: mc mb /data/bucket
+    entrypoint: /bin/sh
+    command: -c "mc mb /data/bucket || true && tail -f /dev/null"
+    networks:
+      - iceberg-sandbox-network
 
   irc:
     hostname: irc
-    image: apache/iceberg-rest-fixture:1.9.2
-    volumes:
-      - ./postgresql-42.7.5.jar:/usr/lib/iceberg-rest/postgresql-42.7.5.jar
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile_iceberg_rest
     depends_on:
       postgresql:
         condition: service_healthy
@@ -64,8 +67,9 @@ services:
       CATALOG_S3_PATH__STYLE__ACCESS: true
       CATALOG_S3_ACCESS__KEY__ID: minioadmin
       CATALOG_S3_SECRET__ACCESS__KEY: minioadmin
-
     command: java -cp /usr/lib/iceberg-rest/*:iceberg-rest-adapter.jar org.apache.iceberg.rest.RESTCatalogServer
+    networks:
+      - iceberg-sandbox-network
 
   # trino:
   #   container_name: trino
@@ -78,61 +82,72 @@ services:
   #   ports:
   #     - "8080:8080"
 
-  # --- Spark Connect Server ---
   spark-connect-server:
-    image: apache/spark:3.5.6
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile_spark_server
     container_name: spark-connect-server
     hostname: spark-connect-server
-    user: "0:0"
+    user: "185:185"
     volumes:
       - ivy-cache:/home/spark/.ivy2
+      - spark-events:/home/spark/spark-events
     ports:
-      - "8080:8080" # Spark Master UI (スタンドアロンモードで実行する場合)
-      - "4040:4040" # Spark Application UI
-      - "15002:15002" # Spark Connect Server Port
+      - "15002:15002"
     environment:
       - AWS_ACCESS_KEY_ID=minioadmin
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - AWS_REGION=us-east-1
-    # environment:
-    #   - SPARK_CONF_spark_sql_extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
-    #   - SPARK_CONF_spark_sql_defaultCatalog=iceberg
-    #   - SPARK_CONF_spark_sql_catalog_iceberg=org.apache.iceberg.spark.SparkCatalog
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_type=rest
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_uri=http://irc:8181
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_io-impl=org.apache.iceberg.aws.s3.S3FileIO
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_warehouse=s3://bucket/warehouse/
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_s3_endpoint=http://minio:9000
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_s3_path-style-access=true
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_s3_access-key-id=minioadmin
-    #   - SPARK_CONF_spark_sql_catalog_iceberg_s3_secret-access-key=minioadmin
     depends_on:
       - irc
       - minio
-    # https://mvnrepository.com/artifact/org.apache.iceberg/iceberg-spark-runtime-3.5
-    # https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws
-    # https://mvnrepository.com/artifact/org.apache.spark/spark-connect
-    # command: >
-    #   /bin/sh -c "/opt/spark/sbin/start-connect-server.sh --packages org.apache.spark:spark-connect_2.12:3.5.6,org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.5.2,org.apache.hadoop:hadoop-aws:3.3.4 && tail -f /dev/null"
     command: >
       /bin/sh -c "/opt/spark/sbin/start-connect-server.sh
-      --packages org.apache.spark:spark-connect_2.12:3.5.6,org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.5.2,org.apache.hadoop:hadoop-aws:3.3.4,software.amazon.awssdk:bundle:2.20.43
+      --jars /opt/spark/jars/iceberg/spark-connect_2.12-3.5.6.jar,/opt/spark/jars/iceberg/iceberg-spark-runtime-3.5_2.12-1.5.2.jar,/opt/spark/jars/iceberg/hadoop-aws-3.3.4.jar,/opt/spark/jars/iceberg/bundle-2.20.43.jar
       --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
-      --conf spark.sql.defaultCatalog=iceberg
-      --conf spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkCatalog
-      --conf spark.sql.catalog.iceberg.type=rest
-      --conf spark.sql.catalog.iceberg.uri=http://irc:8181
-      --conf spark.sql.catalog.iceberg.io-impl=org.apache.iceberg.aws.s3.S3FileIO
-      --conf spark.sql.catalog.iceberg.warehouse=s3://bucket/warehouse/
-      --conf spark.sql.catalog.iceberg.s3.endpoint=http://minio:9000
-      --conf spark.sql.catalog.iceberg.s3.path-style-access=true
-      --conf spark.sql.catalog.iceberg.s3.access-key-id=minioadmin
-      --conf spark.sql.catalog.iceberg.s3.secret-access-key=minioadmin
-      --conf spark.sql.catalog.iceberg.s3.region=us-east-1
+      --conf spark.sql.defaultCatalog=my_catalog
+      --conf spark.sql.catalog.my_catalog=org.apache.iceberg.spark.SparkCatalog
+      --conf spark.sql.catalog.my_catalog.type=rest
+      --conf spark.sql.catalog.my_catalog.uri=http://irc:8181
+      --conf spark.sql.catalog.my_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO
+      --conf spark.sql.catalog.my_catalog.warehouse=s3://bucket/warehouse/
+      --conf spark.sql.catalog.my_catalog.s3.endpoint=http://minio:9000
+      --conf spark.sql.catalog.my_catalog.s3.path-style-access=true
+      --conf spark.sql.catalog.my_catalog.s3.access-key-id=minioadmin
+      --conf spark.sql.catalog.my_catalog.s3.secret-access-key=minioadmin
+      --conf spark.sql.catalog.my_catalog.s3.region=us-east-1
       --conf spark.hadoop.fs.s3a.endpoint.region=us-east-1
+      --conf spark.eventLog.dir=file:///home/spark/spark-events
+      --conf spark.eventLog.enabled=true
+      --conf spark.connect.grpc.binding.host=0.0.0.0
+      --conf spark.connect.grpc.binding.port=15002
       && tail -f /dev/null"
+    networks:
+    - iceberg-sandbox-network
 
-  # --- Spark Connect Client ---
+  spark-history-server:
+    image: apache/spark:3.5.6
+    container_name: spark-history-server
+    hostname: spark-history-server
+    user: "185:185"
+    ports:
+      - "18080:18080"
+    environment:
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - AWS_REGION=us-east-1
+      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=file:///home/spark/spark-events
+    volumes:
+      - ivy-cache:/home/spark/.ivy2
+      - spark-events:/home/spark/spark-events
+    depends_on:
+      - minio
+    command: >
+      /bin/sh -c "/opt/spark/sbin/start-history-server.sh
+      && tail -f /dev/null"
+    networks:
+      - iceberg-sandbox-network
+
   spark-connect-client:
     build:
       context: .
@@ -142,8 +157,17 @@ services:
       - "8888:8888"
     volumes:
       - .:/app/
-    depends_on:
-      - spark-connect-server
     # コンテナを起動し続け、インタラクティブな操作を可能にする
     stdin_open: true
     tty: true
+    networks:
+      - iceberg-sandbox-network
+
+volumes:
+  data: {}
+  ivy-cache: {}
+  spark-events: {}
+
+networks:
+  iceberg-sandbox-network:
+    driver: bridge
