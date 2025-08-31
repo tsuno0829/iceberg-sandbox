@@ -1,11 +1,6 @@
 #
 # 参考：https://zenn.dev/iceberg/articles/aa5ee2f2b7fc06
 #
-volumes:
-  data: {}
-  ivy-cache: {}
-  spark-events: {}
-
 services:
   postgresql:
     container_name: postgresql
@@ -44,7 +39,8 @@ services:
       - minio
     volumes:
       - data:/data
-    entrypoint: mc mb /data/bucket
+    entrypoint: /bin/sh
+    command: -c "mc mb /data/bucket || true && tail -f /dev/null"
     networks:
       - iceberg-sandbox-network
 
@@ -166,6 +162,11 @@ services:
     tty: true
     networks:
       - iceberg-sandbox-network
+
+volumes:
+  data: {}
+  ivy-cache: {}
+  spark-events: {}
 
 networks:
   iceberg-sandbox-network:
